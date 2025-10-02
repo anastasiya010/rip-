@@ -1,0 +1,45 @@
+{{ define "content" }}
+<section class="toolbar">
+    <form method="get" action="/catalog" class="filter-form">
+        <label class="filter-label">Выберите категорию лекарства</label>
+        <select name="cat" class="filter-select">
+            <option value="">Все категории</option>
+            {{ range .Categories }}
+            <option value="{{ . }}" {{ if eq $.SelectedCategory . }}selected{{ end }}>{{ . }}</option>
+            {{ end }}
+        </select>
+        <label class="filter-label">Производитель</label>
+        <select name="man" class="filter-select">
+            <option value="">Все производители</option>
+            {{ range .Manufacturers }}
+            <option value="{{ . }}" {{ if eq $.SelectedManufacturer . }}selected{{ end }}>{{ . }}</option>
+            {{ end }}
+        </select>
+        <button type="submit" class="btn">Показать</button>
+    </form>
+    <a class="basket" href="/order?id={{ .Order.ID }}" title="Заявка">
+        🧺 <span>В заявке: {{ .OrderCount }}</span>
+    </a>
+    <div class="manufacturers-hint"></div>
+    <div class="manufacturers-bar"></div>
+</section>
+
+<section class="card-grid">
+    {{ range .Services }}
+    <article class="card">
+        <a href="/service?id={{ .ID }}" class="card-link">
+            <img src="{{ call $.ImageURL .ImageKey }}" alt="{{ .Name }}" class="card-img"/>
+            <div class="card-body">
+                <h3 class="card-title">{{ .Name }}</h3>
+                <div class="card-meta">Категория: {{ .Category }}</div>
+                <div class="card-meta">Производитель: {{ .Manufacturer }}</div>
+                <p class="card-text">{{ .ShortInfo }}</p>
+            </div>
+            <div class="card-actions"><span class="btn">Подробнее</span></div>
+        </a>
+    </article>
+    {{ end }}
+</section>
+{{ end }}
+
+

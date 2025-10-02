@@ -1,0 +1,29 @@
+{{ define "content" }}
+<section class="order">
+    <h2 class="section-title">Заявка</h2>
+
+    <div class="order-card">
+        <div class="order-fields-row">
+            <div class="field"><span class="label">Имя ребенка</span><span class="value">Алиса</span></div>
+            <div class="field"><span class="label">Пол</span><span class="value">Женский</span></div>
+            <div class="field"><span class="label">Вес</span><span class="value">32</span></div>
+            <div class="field"><span class="label">Возраст</span><span class="value">8</span></div>
+        </div>
+    </div>
+
+    <div class="order-list">
+        {{ range .Order.Items }}
+        <article class="order-row">
+            <img src="{{ call $.ImageURL .ImageKey }}" alt="{{ .ServiceName }}" class="row-img"/>
+            <div class="row-name">{{ .ServiceName }}</div>
+            <div class="row-result">Результат расчета</div>
+            <div class="row-mm">
+                <input type="text" value="{{ .Note }} — 200 мг, 3 раза/день" disabled />
+            </div>
+        </article>
+        {{ end }}
+    </div>
+</section>
+{{ end }}
+
+

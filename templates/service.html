@@ -1,0 +1,18 @@
+{{ define "content" }}
+<section class="detail">
+    <div class="detail-card">
+        <h2 class="section-title">Подробнее о товаре</h2>
+        <div class="detail-layout single">
+            <img src="{{ call .ImageURL .Service.ImageKey }}" alt="{{ .Service.Name }}" class="detail-img"/>
+            <div class="detail-info">
+                <h3>{{ .Service.Name }}</h3>
+                <p class="detail-text">{{ .Service.Description }}</p>
+                <div class="detail-meta">Категория: {{ .Service.Category }}</div>
+                <div class="detail-meta">Производитель: {{ .Service.Manufacturer }}</div>
+            </div>
+        </div>
+    </div>
+</section>
+{{ end }}
+
+
