@@ -1,0 +1,26 @@
+{{ define "layout" }}
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Расчет дозы для ребенка</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" href="/static/img/favicon.png">
+</head>
+<body>
+    <header class="app-header">
+        <div class="container header-content">
+            <a class="home-link" href="/medicine-catalog" aria-label="Домой">🏠</a>
+            <h1 class="app-title">Каталог лекарств — расчет дозы</h1>
+        </div>
+    </header>
+    <main class="container">
+        {{ template "content" . }}
+    </main>
+    
+</body>
+</html>
+{{ end }}
+
+
