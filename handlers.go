@@ -9,8 +9,8 @@ import (
 	"strings"
 )
 
-// Рендер шаблона с общими данными
-func render(w http.ResponseWriter, r *http.Request, name string, data map[string]any) {
+// Рендер шаблона с общими данными о лекарствах
+func renderPharmacyTemplate(w http.ResponseWriter, r *http.Request, name string, data map[string]any) {
 	base := template.Must(template.ParseFiles(
 		"templates/layout.html",
 		fmt.Sprintf("templates/%s.html", name),
@@ -18,139 +18,94 @@ func render(w http.ResponseWriter, r *http.Request, name string, data map[string
 	if data == nil {
 		data = map[string]any{}
 	}
-	data["MinioBase"] = minioBaseURL()
-	data["ImageURL"] = imageURL
+	data["MinioBase"] = pharmacyImageBaseURL()
+	data["ImageURL"] = medicationImageURL
 	if err := base.ExecuteTemplate(w, "layout", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
-// Контроллер каталога лекарств с фильтрацией по категории и производителю
-func handleMedicineCatalog(w http.ResponseWriter, r *http.Request) {
+// Контроллер каталога карточек лекарств с фильтрацией по категории и производителю
+func handleMedicationCatalog(w http.ResponseWriter, r *http.Request) {
 	// Параметры фильтрации
-	cat := strings.TrimSpace(r.URL.Query().Get("cat"))
-	man := strings.TrimSpace(r.URL.Query().Get("man"))
+	categoryFilter := strings.TrimSpace(r.URL.Query().Get("cat"))
+	manufacturerFilter := strings.TrimSpace(r.URL.Query().Get("man"))
 
-	var items []Medicine
-	for _, s := range medicineList {
-		if cat != "" && !strings.EqualFold(s.Category, cat) {
+	var filteredMedicationCards []MedicationCard
+	for _, medication := range medicationCatalog {
+		if categoryFilter != "" && !strings.EqualFold(medication.Category, categoryFilter) {
 			continue
 		}
-		if man != "" && !strings.EqualFold(s.Manufacturer, man) {
+		if manufacturerFilter != "" && !strings.EqualFold(medication.Manufacturer, manufacturerFilter) {
 			continue
 		}
-		items = append(items, s)
+		filteredMedicationCards = append(filteredMedicationCards, medication)
 	}
 
 	// Соберём уникальные списки для селектов
-	cats := map[string]struct{}{}
-	mans := map[string]struct{}{}
-	for _, s := range medicineList {
-		cats[s.Category] = struct{}{}
-		mans[s.Manufacturer] = struct{}{}
+	categoryDictionary := map[string]struct{}{}
+	manufacturerDictionary := map[string]struct{}{}
+	for _, medication := range medicationCatalog {
+		categoryDictionary[medication.Category] = struct{}{}
+		manufacturerDictionary[medication.Manufacturer] = struct{}{}
 	}
-	var catList, manList []string
-	for k := range cats {
-		catList = append(catList, k)
+	var categoryOptions, manufacturerOptions []string
+	for category := range categoryDictionary {
+		categoryOptions = append(categoryOptions, category)
 	}
-	for k := range mans {
-		manList = append(manList, k)
+	for manufacturer := range manufacturerDictionary {
+		manufacturerOptions = append(manufacturerOptions, manufacturer)
 	}
-	sort.Strings(catList)
-	sort.Strings(manList)
+	sort.Strings(categoryOptions)
+	sort.Strings(manufacturerOptions)
 
-	// Текущий рецепт (первый в словаре для примера)
-	var cur Prescription
-	for _, p := range prescriptions {
-		cur = p
+	// Текущая заявка (первая в словаре для примера)
+	var activePrescription PrescriptionRequest
+	for _, prescription := range prescriptionRegistry {
+		activePrescription = prescription
 		break
 	}
 
-	render(w, r, "catalog", map[string]any{
-		"Medicines":            items,
-		"Prescription":         cur,
-		"PrescriptionCount":    prescriptionCount(cur),
-		"SelectedCategory":     cat,
-		"SelectedManufacturer": man,
-		"Categories":           catList,
-		"Manufacturers":        manList,
+	renderPharmacyTemplate(w, r, "catalog", map[string]any{
+		"MedicationCards":             filteredMedicationCards,
+		"Prescription":                activePrescription,
+		"PrescriptionMedicationCount": prescriptionMedicationCount(activePrescription),
+		"SelectedCategory":            categoryFilter,
+		"SelectedManufacturer":        manufacturerFilter,
+		"Categories":                  categoryOptions,
+		"Manufacturers":               manufacturerOptions,
 	})
 }
 
-// Контроллер детали лекарства: /medicine?id=1
-func handleMedicine(w http.ResponseWriter, r *http.Request) {
+// Контроллер детали карточки лекарства: /service?id=1
+func handleMedicationCard(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	id, _ := strconv.Atoi(idStr)
-	var found *Medicine
-	for i := range medicineList {
-		if medicineList[i].ID == id {
-			found = &medicineList[i]
+	var foundMedication *MedicationCard
+	for i := range medicationCatalog {
+		if medicationCatalog[i].ID == id {
+			foundMedication = &medicationCatalog[i]
 			break
 		}
 	}
-	if found == nil {
+	if foundMedication == nil {
 		http.NotFound(w, r)
 		return
 	}
-	render(w, r, "service", map[string]any{"Medicine": found})
+	renderPharmacyTemplate(w, r, "service", map[string]any{"MedicationCard": foundMedication})
 }
 
-// Контроллер рецепта: /prescription?id=1001
-func handlePrescription(w http.ResponseWriter, r *http.Request) {
+// Контроллер заявки на назначение лекарств: /order?id=1001
+func handlePrescriptionRequest(w http.ResponseWriter, r *http.Request) {
 	idStr := r.URL.Query().Get("id")
 	id, _ := strconv.Atoi(idStr)
-	presc, ok := prescriptions[id]
+	prescription, ok := prescriptionRegistry[id]
 	if !ok {
 		http.NotFound(w, r)
 		return
 	}
-	render(w, r, "order", map[string]any{
-		"Prescription":      presc,
-		"PrescriptionCount": prescriptionCount(presc),
+	renderPharmacyTemplate(w, r, "order", map[string]any{
+		"Prescription":                prescription,
+		"PrescriptionMedicationCount": prescriptionMedicationCount(prescription),
 	})
-}
-
-func redirectBack(w http.ResponseWriter, r *http.Request, fallback string) {
-	ref := r.Header.Get("Referer")
-	if ref == "" {
-		http.Redirect(w, r, fallback, http.StatusSeeOther)
-		return
-	}
-	http.Redirect(w, r, ref, http.StatusSeeOther)
-}
-
-// POST /cart/add?id=MED_ID
-func handleCartAdd(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost && r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	idStr := r.URL.Query().Get("id")
-	id, _ := strconv.Atoi(idStr)
-	addMedicineToPrescription(id)
-	// редирект обратно на предыдущую страницу или в каталог
-	redirectBack(w, r, "/medicine-catalog")
-}
-
-// POST /cart/remove?id=MED_ID
-func handleCartRemove(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost && r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	idStr := r.URL.Query().Get("id")
-	id, _ := strconv.Atoi(idStr)
-	removeMedicineFromPrescription(id)
-	// редирект обратно на предыдущую страницу или в рецепт
-	redirectBack(w, r, "/prescription?id="+strconv.Itoa(currentPrescriptionID()))
-}
-
-// POST /cart/clear
-func handleCartClear(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost && r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	clearPrescription()
-	redirectBack(w, r, "/prescription?id="+strconv.Itoa(currentPrescriptionID()))
 }

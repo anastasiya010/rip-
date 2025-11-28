@@ -1,36 +1,46 @@
-{{ define "content" }}
+{{ define "order-content" }}
 <section class="order">
-    <h2 class="section-title">Рецепт</h2>
+    <h2 class="section-title">Заявка на расчет дозы</h2>
 
+    {{ if .Prescription }}
     <div class="order-card">
         <div class="order-fields-row">
-            <div class="field"><span class="label">Имя ребенка</span><span class="value">Алиса</span></div>
-            <div class="field"><span class="label">Пол</span><span class="value">Женский</span></div>
-            <div class="field"><span class="label">Вес</span><span class="value">32</span></div>
-            <div class="field"><span class="label">Возраст</span><span class="value">8</span></div>
+            <div class="field"><span class="label">Имя ребенка</span><span class="value">{{ if .Prescription.PatientName }}{{ .Prescription.PatientName }}{{ else }}Не указано{{ end }}</span></div>
+            <div class="field"><span class="label">Пол</span><span class="value">{{ if .Prescription.PatientGender }}{{ .Prescription.PatientGender }}{{ else }}Не указан{{ end }}</span></div>
+            <div class="field"><span class="label">Вес (кг)</span><span class="value">{{ if .Prescription.PatientWeight }}{{ .Prescription.PatientWeight }}{{ else }}Не указан{{ end }}</span></div>
+            <div class="field"><span class="label">Возраст (лет)</span><span class="value">{{ if .Prescription.PatientAge }}{{ .Prescription.PatientAge }}{{ else }}Не указан{{ end }}</span></div>
         </div>
     </div>
 
     <div class="order-list">
-        {{ range .Prescription.Items }}
+        {{ range .Prescription.Medications }}
         <article class="order-row">
-            <img src="{{ call $.ImageURL .ImageKey }}" alt="{{ .MedicineName }}" class="row-img"/>
-            <div class="row-name">{{ .MedicineName }}</div>
+            <img src="{{ if .ImageKey }}{{ call $.ImageURL .ImageKey }}{{ else }}{{ call $.ImageURL "" }}{{ end }}" alt="{{ .MedicationName }}" class="row-img"/>
+            <div class="row-name">{{ .MedicationName }}</div>
             <div class="row-result">Количество: {{ .Quantity }}</div>
             <div class="row-mm">
-                <form method="post" action="/cart/remove?id={{ .MedicineID }}">
-                    <button type="submit" class="btn">Удалить</button>
-                </form>
+                <input type="text" value="{{ if .DosageInstruction }}{{ .DosageInstruction }}{{ else }}Дозировка будет рассчитана при завершении{{ end }}" disabled />
             </div>
         </article>
         {{ end }}
     </div>
 
-    <div style="margin-top:16px;">
-        <form method="post" action="/cart/clear">
-            <button type="submit" class="btn">Очистить рецепт</button>
-        </form>
+    {{ if and (eq .Prescription.Status "завершён") .Prescription.CalculationResult }}
+    <div class="order-card" style="margin-top: 20px; background-color: #e8f5e9; padding: 15px; border-radius: 8px;">
+        <h3 style="margin-bottom: 10px;">Результат расчета дозы:</h3>
+        <p style="white-space: pre-wrap;">{{ .Prescription.CalculationResult }}</p>
     </div>
+    {{ end }}
+
+    <form action="/delete-prescription" method="POST" style="margin-top: 20px;">
+        <input type="hidden" name="prescription_id" value="{{ .Prescription.ID }}">
+        <button type="submit" class="btn" style="background-color: #dc3545; color: white;">Удалить заявку</button>
+    </form>
+    {{ else }}
+    <div class="order-card">
+        <p>У вас нет активной заявки. Добавьте лекарства из каталога.</p>
+    </div>
+    {{ end }}
 </section>
 {{ end }}
 

@@ -1,7 +1,7 @@
 package main
 
-// Модель лекарства
-type Medicine struct {
+// Модель карточки лекарства
+type MedicationCard struct {
 	ID           int
 	Name         string
 	ImageKey     string // ключ в Minio
@@ -11,20 +11,20 @@ type Medicine struct {
 	Description  string
 }
 
-// Модель рецепта
-type Prescription struct {
-	ID         int
-	Title      string
-	Comment    string
-	ResultNote string // поле результата вычислений (пока фиксированное)
-	Items      []PrescriptionItem
+// Модель заявки на назначение лекарств
+type PrescriptionRequest struct {
+	ID                  int
+	RequestTitle        string
+	RequestComment      string
+	MedicationGuideline string // поле результата вычислений (пока фиксированное)
+	Medications         []PrescribedMedication
 }
 
-// Элемент рецепта (плоская структура, без вложенных массивов в лекарстве)
-type PrescriptionItem struct {
-	MedicineID   int
-	MedicineName string
-	ImageKey     string
-	Quantity     int
-	Note         string // поле м-м (комментарий/результат)
+// Элемент заявки c конкретным лекарством
+type PrescribedMedication struct {
+	MedicationCardID  int
+	MedicationName    string
+	ImageKey          string
+	Quantity          int
+	DosageInstruction string // поле м-м (комментарий/результат)
 }

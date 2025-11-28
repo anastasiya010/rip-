@@ -7,11 +7,11 @@ import (
 )
 
 // Коллекции данных (без БД)
-var medicineList []Medicine
-var prescriptions map[int]Prescription
+var medicationCatalog []MedicationCard
+var prescriptionRegistry map[int]PrescriptionRequest
 
-// Базовый URL для Minio (можно переопределить переменной окружения)
-func minioBaseURL() string {
+// Базовый URL для хранилища изображений лекарств (можно переопределить переменной окружения)
+func pharmacyImageBaseURL() string {
 	if v := os.Getenv("MINIO_PUBLIC_BASE"); v != "" {
 		return strings.TrimRight(v, "/")
 	}
@@ -19,14 +19,14 @@ func minioBaseURL() string {
 	return "/static/img"
 }
 
-// Хелпер для построения URL картинки из ключа
-func imageURL(key string) string {
-	return minioBaseURL() + "/" + key
+// Хелпер для построения URL картинки лекарства из ключа
+func medicationImageURL(key string) string {
+	return pharmacyImageBaseURL() + "/" + key
 }
 
-// Инициализация тестовых данных
-func seedData() {
-	medicineList = []Medicine{
+// Инициализация тестовых данных о лекарствах
+func seedMedicationDataset() {
+	medicationCatalog = []MedicationCard{
 		{ID: 1, Name: "Нурофен детский", ImageKey: "nurofen.png", Category: "Жаропонижающее", Manufacturer: "Reckitt", ShortInfo: "Ибупрофен 100 мг/5 мл", Description: "Нурофен применяется при головной боли, мигрени, зубной боли, повышенной температуре, невралгии, боли в ушах, мышечной и ревматической боли."},
 		{ID: 2, Name: "Пенталгин", ImageKey: "pentalgin.png", Category: "Анальгетик", Manufacturer: "OTCpharm", ShortInfo: "Комбинированный анальгетик", Description: "Пенталгин оказывает анальгезирующее и спазмолитическое действие."},
 		{ID: 3, Name: "Гинкоум", ImageKey: "ginkoum.png", Category: "Ноотроп", Manufacturer: "Evalar", ShortInfo: "Экстракт гинкго билоба", Description: "Улучшает мозговое кровообращение, показан при снижении памяти и внимания."},
@@ -37,97 +37,27 @@ func seedData() {
 	}
 
 	// Сортируем по имени для стабильного вывода
-	sort.Slice(medicineList, func(i, j int) bool { return medicineList[i].Name < medicineList[j].Name })
+	sort.Slice(medicationCatalog, func(i, j int) bool { return medicationCatalog[i].Name < medicationCatalog[j].Name })
 
-	// Изначально рецепт пустой
-	prescriptions = map[int]Prescription{
+	prescriptionRegistry = map[int]PrescriptionRequest{
 		1001: {
-			ID:         1001,
-			Title:      "Рецепт на расчет дозы",
-			Comment:    "",
-			ResultNote: "",
-			Items:      []PrescriptionItem{},
+			ID:                  1001,
+			RequestTitle:        "Заявка на расчет дозы",
+			RequestComment:      "Пациент: ребенок 6 лет",
+			MedicationGuideline: "Итог: расчет дозы произведен врачом. Рекомендация: Нурофен 10 мг/кг",
+			Medications: []PrescribedMedication{
+				{MedicationCardID: 2, MedicationName: "Пенталгин", ImageKey: "pentalgin.png", Quantity: 1, DosageInstruction: "по необходимости"},
+				{MedicationCardID: 3, MedicationName: "Гинкоум", ImageKey: "ginkoum.png", Quantity: 1, DosageInstruction: "курс 30 дней"},
+			},
 		},
 	}
 }
 
-// Подсчет количества лекарств в рецепте
-func prescriptionCount(p Prescription) int {
+// Подсчет количества назначенных лекарств в заявке
+func prescriptionMedicationCount(p PrescriptionRequest) int {
 	total := 0
-	for _, it := range p.Items {
-		total += it.Quantity
+	for _, medication := range p.Medications {
+		total += medication.Quantity
 	}
 	return total
-}
-
-// Поиск лекарства по ID
-func findMedicineByID(id int) (Medicine, bool) {
-	for _, m := range medicineList {
-		if m.ID == id {
-			return m, true
-		}
-	}
-	return Medicine{}, false
-}
-
-// Получить ID текущего рецепта (первый в словаре)
-func currentPrescriptionID() int {
-	for id := range prescriptions {
-		return id
-	}
-	// если по каким-то причинам пусто — создадим дефолтный
-	prescriptions = map[int]Prescription{
-		1001: {ID: 1001, Title: "Рецепт на расчет дозы", Items: []PrescriptionItem{}},
-	}
-	return 1001
-}
-
-// Добавить лекарство в рецепт (увеличит количество, если уже есть)
-func addMedicineToPrescription(medicineID int) {
-	pid := currentPrescriptionID()
-	p := prescriptions[pid]
-	med, ok := findMedicineByID(medicineID)
-	if !ok {
-		return
-	}
-	found := false
-	for i := range p.Items {
-		if p.Items[i].MedicineID == medicineID {
-			p.Items[i].Quantity += 1
-			found = true
-			break
-		}
-	}
-	if !found {
-		p.Items = append(p.Items, PrescriptionItem{
-			MedicineID:   med.ID,
-			MedicineName: med.Name,
-			ImageKey:     med.ImageKey,
-			Quantity:     1,
-			Note:         "",
-		})
-	}
-	prescriptions[pid] = p
-}
-
-// Удалить одно лекарство (уменьшить количество, удалить если 0)
-func removeMedicineFromPrescription(medicineID int) {
-	pid := currentPrescriptionID()
-	p := prescriptions[pid]
-	for i := range p.Items {
-		if p.Items[i].MedicineID == medicineID {
-			// Полностью удалить позицию из рецепта
-			p.Items = append(p.Items[:i], p.Items[i+1:]...)
-			break
-		}
-	}
-	prescriptions[pid] = p
-}
-
-// Полная очистка рецепта
-func clearPrescription() {
-	pid := currentPrescriptionID()
-	p := prescriptions[pid]
-	p.Items = []PrescriptionItem{}
-	prescriptions[pid] = p
 }

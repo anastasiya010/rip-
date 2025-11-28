@@ -1,6 +1,8 @@
-{{ define "content" }}
+{{ define "catalog-content" }}
 <section class="toolbar">
-    <form method="get" action="/medicine-catalog" class="filter-form">
+    <form method="get" action="/catalog" class="filter-form">
+        <label class="filter-label">Поиск</label>
+        <input type="text" name="search" placeholder="Название лекарства" value="{{ .Search }}" class="filter-select">
         <label class="filter-label">Выберите категорию лекарства</label>
         <select name="cat" class="filter-select">
             <option value="">Все категории</option>
@@ -15,33 +17,39 @@
             <option value="{{ . }}" {{ if eq $.SelectedManufacturer . }}selected{{ end }}>{{ . }}</option>
             {{ end }}
         </select>
-        <button type="submit" class="btn">Показать лекарства</button>
+        <button type="submit" class="btn">Показать</button>
     </form>
-    <a class="basket" href="/prescription?id={{ .Prescription.ID }}" title="Рецепт">
-        🧺 <span>В рецепте: {{ .PrescriptionCount }}</span>
+    {{ if ne .cart_count 0 }}
+    <a class="basket" href="/order" title="Заявка">
+        🧺 <span>В заявке: {{ .cart_count }}</span>
     </a>
+    {{ else }}
+    <div class="basket" style="opacity: 0.5; cursor: not-allowed;" title="Заявка пуста">
+        🧺 <span>В заявке: 0</span>
+    </div>
+    {{ end }}
     <div class="manufacturers-hint"></div>
     <div class="manufacturers-bar"></div>
 </section>
 
 <section class="card-grid">
-    {{ range .Medicines }}
+    {{ range .MedicationCards }}
     <article class="card">
-        <a href="/medicine?id={{ .ID }}" class="card-link">
-            <img src="{{ call $.ImageURL .ImageKey }}" alt="{{ .Name }}" class="card-img"/>
+        <a href="/service/{{ .ID }}" class="card-link">
+            <img src="{{ call $.ImageURL .ImageURL }}" alt="{{ .Name }}" class="card-img"/>
             <div class="card-body">
                 <h3 class="card-title">{{ .Name }}</h3>
                 <div class="card-meta">Категория: {{ .Category }}</div>
                 <div class="card-meta">Производитель: {{ .Manufacturer }}</div>
                 <p class="card-text">{{ .ShortInfo }}</p>
             </div>
+            <div class="card-actions"><span class="btn">Подробнее</span></div>
         </a>
-        <div class="card-actions">
-            <form method="post" action="/cart/add?id={{ .ID }}">
-                <button type="submit" class="btn">Добавить в корзину</button>
-            </form>
-            <a href="/medicine?id={{ .ID }}" class="btn" style="margin-left:8px;">Подробнее</a>
-        </div>
+        <form action="/add-medication" method="POST" style="padding: 10px;">
+            <input type="hidden" name="medication_id" value="{{ .ID }}">
+            <input type="hidden" name="quantity" value="1">
+            <button type="submit" class="btn" style="width: 100%;">Добавить в заявку</button>
+        </form>
     </article>
     {{ end }}
 </section>

@@ -11,12 +11,24 @@
 <body>
     <header class="app-header">
         <div class="container header-content">
-            <a class="home-link" href="/medicine-catalog" aria-label="Домой">🏠</a>
-            <h1 class="app-title">Каталог лекарств — расчет дозы</h1>
+            <a class="home-link" href="/catalog" aria-label="Домой">🏠</a>
+            <h1 class="app-title">Аптечный справочник — расчет дозы</h1>
         </div>
     </header>
     <main class="container">
-        {{ template "content" . }}
+        {{ if .TemplateName }}
+            {{ if eq .TemplateName "catalog" }}
+                {{ template "catalog-content" . }}
+            {{ else if eq .TemplateName "service" }}
+                {{ template "service-content" . }}
+            {{ else if eq .TemplateName "order" }}
+                {{ template "order-content" . }}
+            {{ else }}
+                <p>Ошибка: неизвестный TemplateName: {{ .TemplateName }}</p>
+            {{ end }}
+        {{ else }}
+            <p>Ошибка: TemplateName не указан. Доступные данные: {{ . }}</p>
+        {{ end }}
     </main>
     
 </body>
