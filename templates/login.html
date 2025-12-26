@@ -1,0 +1,114 @@
+{{ define "login-content" }}
+<section class="auth-section">
+    <div class="auth-container">
+        <!-- Форма входа (показывается по умолчанию) -->
+        <div id="loginSection">
+            <h2 class="section-title">Вход в систему</h2>
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label for="login">Логин:</label>
+                    <input type="text" id="login" name="login" required class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="password">Пароль:</label>
+                    <input type="password" id="password" name="password" required class="form-input">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 10px; align-items: flex-start;">
+                    <button type="submit" class="btn btn-primary">Войти</button>
+                    <button type="button" onclick="showRegister()" class="btn btn-secondary">Зарегистрироваться</button>
+                </div>
+                <div id="loginError" class="error-message" style="display: none;"></div>
+            </form>
+        </div>
+        
+        <!-- Форма регистрации (скрыта по умолчанию) -->
+        <div id="registerSection" style="display: none;">
+            <h2 class="section-title">Регистрация</h2>
+            <form id="registerForm" class="auth-form">
+                <div class="form-group">
+                    <label for="reg_login">Логин:</label>
+                    <input type="text" id="reg_login" name="login" required class="form-input">
+                </div>
+                <div class="form-group">
+                    <label for="reg_password">Пароль:</label>
+                    <input type="password" id="reg_password" name="password" required class="form-input">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 10px; align-items: flex-start;">
+                    <button type="submit" class="btn btn-primary">Зарегистрироваться</button>
+                    <button type="button" onclick="showLogin()" class="btn btn-secondary">Вернуться к входу</button>
+                </div>
+                <div id="registerError" class="error-message" style="display: none;"></div>
+                <div id="registerSuccess" class="success-message" style="display: none;"></div>
+            </form>
+        </div>
+    </div>
+</section>
+
+<script>
+function showRegister() {
+    document.getElementById('loginSection').style.display = 'none';
+    document.getElementById('registerSection').style.display = 'block';
+}
+
+function showLogin() {
+    document.getElementById('registerSection').style.display = 'none';
+    document.getElementById('loginSection').style.display = 'block';
+}
+
+// Проверяем параметр register в URL
+if (window.location.search.includes('register=1')) {
+    showRegister();
+}
+
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const login = document.getElementById('login').value;
+    const password = document.getElementById('password').value;
+    
+    const response = await fetch('/api/users/auth', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ login, password })
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+        window.location.href = '/catalog';
+    } else {
+        document.getElementById('loginError').textContent = data.message || 'Ошибка входа';
+        document.getElementById('loginError').style.display = 'block';
+    }
+});
+
+document.getElementById('registerForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const login = document.getElementById('reg_login').value;
+    const password = document.getElementById('reg_password').value;
+    
+    const response = await fetch('/api/users/register', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ login, password })
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok) {
+        document.getElementById('registerSuccess').textContent = 'Регистрация успешна! Вы будете перенаправлены...';
+        document.getElementById('registerSuccess').style.display = 'block';
+        setTimeout(() => {
+            window.location.href = '/catalog';
+        }, 1000);
+    } else {
+        document.getElementById('registerError').textContent = data.message || 'Ошибка регистрации';
+        document.getElementById('registerError').style.display = 'block';
+    }
+});
+</script>
+{{ end }}
+

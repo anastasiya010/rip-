@@ -1,0 +1,54 @@
+{{ define "order-content" }}
+<section class="order">
+    <h2 class="section-title">Заявка на расчет дозы</h2>
+
+    {{ if .Prescription }}
+    <div class="order-card">
+        <div class="order-fields-row">
+            <div class="field"><span class="label">Имя ребенка</span><span class="value">Миша</span></div>
+            <div class="field"><span class="label">Пол</span><span class="value">Мужской</span></div>
+            <div class="field"><span class="label">Вес (кг)</span><span class="value">30</span></div>
+            <div class="field"><span class="label">Возраст (лет)</span><span class="value">5</span></div>
+        </div>
+    </div>
+
+    <div class="order-list">
+        {{ range .Prescription.Medications }}
+        <article class="order-row">
+            <img src="{{ if .ImageKey }}{{ call $.ImageURL .ImageKey }}{{ else }}{{ call $.ImageURL "" }}{{ end }}" alt="{{ .MedicationName }}" class="row-img"/>
+            <div class="row-name">{{ .MedicationName }}</div>
+            <div class="row-mm">
+                <input type="text" value="{{ if .DosageInstruction }}{{ .DosageInstruction }}{{ else }}Дозировка будет рассчитана при завершении{{ end }}" disabled />
+            </div>
+        </article>
+        {{ end }}
+    </div>
+
+    {{ if and (eq .Prescription.Status "завершён") .Prescription.CalculationResult }}
+    <div class="order-card" style="margin-top: 20px; background-color: #e8f5e9; padding: 15px; border-radius: 8px;">
+        <h3 style="margin-bottom: 10px;">Результат расчета дозы:</h3>
+        <p style="white-space: pre-wrap;">{{ .Prescription.CalculationResult }}</p>
+    </div>
+    {{ end }}
+
+    {{ if eq .Prescription.Status "черновик" }}
+    <div style="margin-top: 20px; display: flex; gap: 10px;">
+        <form action="/form-prescription" method="POST" style="flex: 1;">
+            <input type="hidden" name="prescription_id" value="{{ .Prescription.ID }}">
+            <button type="submit" class="btn" style="width: 100%; background-color: #28a745; color: white;">Сформировать заказ</button>
+        </form>
+        <form action="/delete-prescription" method="POST" style="flex: 1;">
+            <input type="hidden" name="prescription_id" value="{{ .Prescription.ID }}">
+            <button type="submit" class="btn" style="width: 100%; background-color: #dc3545; color: white;">Удалить заявку</button>
+        </form>
+    </div>
+    {{ end }}
+    {{ else }}
+    <div class="order-card">
+        <p>У вас нет активной заявки. Добавьте лекарства из каталога.</p>
+    </div>
+    {{ end }}
+</section>
+{{ end }}
+
+

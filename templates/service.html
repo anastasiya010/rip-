@@ -1,0 +1,22 @@
+{{ define "service-content" }}
+<section class="detail">
+    <div class="detail-card">
+        <h2 class="section-title">Подробнее о лекарстве</h2>
+        <div class="detail-layout single">
+            <img src="{{ if .MedicationCard.ImageURL }}{{ call .ImageURL .MedicationCard.ImageURL }}{{ else }}{{ call .ImageURL "" }}{{ end }}" alt="{{ .MedicationCard.Name }}" class="detail-img"/>
+            <div class="detail-info">
+                <h3>{{ .MedicationCard.Name }}</h3>
+                <p class="detail-text">{{ .MedicationCard.Description }}</p>
+                <div class="detail-meta">Категория: {{ .MedicationCard.Category }}</div>
+                <div class="detail-meta">Производитель: {{ .MedicationCard.Manufacturer }}</div>
+                <form action="/add-medication" method="POST" style="margin-top: 20px;">
+                    <input type="hidden" name="medication_id" value="{{ .MedicationCard.ID }}">
+                    <button type="submit" class="btn">Добавить в заявку</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{{ end }}
+
+

@@ -1,0 +1,257 @@
+@startuml
+!define API_COLOR #E1F5FF
+!define MODEL_COLOR #FFF4E1
+!define REPO_COLOR #E8F5E9
+!define DB_COLOR #F3E5F5
+!define AUTH_COLOR #FFE0E0
+
+title Диаграмма классов бэкенда - ЛР3
+
+package "API Handlers (/api)" API_COLOR {
+    class Handler {
+        - Repository repository
+        - MinioClient minio
+        --
+        ' Домен услуги (Medication)
+        + GetMedicationsAPI() : GET /api/medications
+        + GetMedicationByIDAPI() : GET /api/medications/:id
+        + CreateMedicationAPI() : POST /api/medications
+        + UpdateMedicationAPI() : PUT /api/medications/:id
+        + DeleteMedicationAPI() : DELETE /api/medications/:id
+        + AddMedicationToDraftAPI() : POST /api/medications/:id/add-to-draft
+        + UploadMedicationImageAPI() : POST /api/medications/:id/image
+        --
+        ' Домен заявки (Prescription)
+        + GetCartIconAPI() : GET /api/prescriptions/cart-icon
+        + GetPrescriptionsAPI() : GET /api/prescriptions
+        + GetPrescriptionByIDAPI() : GET /api/prescriptions/:id
+        + UpdatePrescriptionAPI() : PUT /api/prescriptions/:id
+        + FormPrescriptionAPI() : PUT /api/prescriptions/:id/form
+        + CompleteOrRejectPrescriptionAPI() : PUT /api/prescriptions/:id/complete|reject
+        + DeletePrescriptionAPI() : DELETE /api/prescriptions/:id
+        --
+        ' Домен м-м (PrescriptionMedication)
+        + DeletePrescriptionMedicationAPI() : DELETE /api/prescriptions/:id/medications/:medication_id
+        + UpdatePrescriptionMedicationAPI() : PUT /api/prescriptions/:id/medications/:medication_id
+        --
+        ' Домен пользователь (User)
+        + RegisterUserAPI() : POST /api/users/register
+        + GetUserProfileAPI() : GET /api/users/profile
+        + UpdateUserProfileAPI() : PUT /api/users/profile
+        + AuthenticateUserAPI() : POST /api/users/auth
+        + LogoutUserAPI() : POST /api/users/logout
+    }
+}
+
+package "Repository Layer" REPO_COLOR {
+    class Repository {
+        - db *gorm.DB
+        --
+        ' Medication методы
+        + GetAllMedications() : []Medication
+        + GetMedicationByID(id uint) : *Medication
+        + CreateMedication(med *Medication) : error
+        + UpdateMedication(med *Medication) : error
+        + DeleteMedication(id uint) : error
+        --
+        ' Prescription методы
+        + GetDraftPrescription(creatorID uint) : *Prescription
+        + CreateDraftPrescription(creatorID uint) : *Prescription
+        + GetDraftPrescriptionID(creatorID uint) : *uint
+        + GetCartCount(creatorID uint) : int
+        + GetPrescriptionsWithFilters(status, dateFrom, dateTo) : []Prescription
+        + GetPrescriptionByID(id uint) : *Prescription
+        + UpdatePrescription(pres *Prescription) : error
+        + FormPrescription(id, creatorID uint) : error
+        + CompleteOrRejectPrescription(id, moderatorID uint, status string) : error
+        + DeletePrescription(id uint) : error
+        --
+        ' PrescriptionMedication методы
+        + GetPrescriptionMedications(id uint) : []PrescriptionMedication
+        + GetPrescriptionMedicationsWithDetails(id uint) : []PrescriptionMedication
+        + GetPrescriptionMedicationsWithResultCount(id uint) : int
+        + AddMedicationToPrescription(presID, medID uint) : error
+        + DeletePrescriptionMedication(presID, medID uint) : error
+        + UpdatePrescriptionMedication(presID, medID uint, updates) : error
+        --
+        ' User методы
+        + GetUserByLogin(login string) : *User
+        + CreateUser(user *User) : error
+        + UpdateUser(user *User) : error
+        --
+        ' Расчет формулы
+        - calculatePrescriptionResult(pres *Prescription, meds []PrescriptionMedication) : string
+    }
+}
+
+package "Data Models" MODEL_COLOR {
+    class Medication {
+        + ID uint <<PK>>
+        + Name string
+        + Description string
+        + IsDeleted bool
+        + ImageURL *string
+        + Category string
+        + Manufacturer string
+        + ShortInfo string
+        + AdultDose float64
+    }
+    
+    class Prescription {
+        + ID uint <<PK>>
+        + Status string
+        + DateCreate time.Time
+        + CreatorID uint <<FK>>
+        + DateFormation sql.NullTime
+        + DateFinish sql.NullTime
+        + ModeratorID *uint <<FK>>
+        + PatientName string
+        + PatientGender string
+        + PatientWeight float64
+        + PatientAge int
+        + CalculationResult string
+    }
+    
+    class PrescriptionMedication {
+        + ID uint <<PK>>
+        + PrescriptionID uint <<FK>>
+        + MedicationID uint <<FK>>
+        + OrderNumber int
+        + IsMain bool
+        + DosageInstruction string
+    }
+    
+    class User {
+        + ID uint <<PK>>
+        + Login string <<UNIQUE>>
+        + Password string
+        + IsModerator bool
+    }
+}
+
+package "Database Tables" DB_COLOR {
+    entity "medications" {
+        * id : INTEGER <<PK>>
+        --
+        name : VARCHAR(100)
+        description : TEXT
+        is_deleted : BOOLEAN
+        image_url : VARCHAR(255)
+        category : VARCHAR(50)
+        manufacturer : VARCHAR(100)
+        short_info : VARCHAR(200)
+        adult_dose : DECIMAL(10,2)
+    }
+    
+    entity "prescriptions" {
+        * id : INTEGER <<PK>>
+        --
+        status : VARCHAR(20)
+        date_create : TIMESTAMP
+        * creator_id : INTEGER <<FK>>
+        date_formation : TIMESTAMP
+        date_finish : TIMESTAMP
+        moderator_id : INTEGER <<FK>>
+        patient_name : VARCHAR(100)
+        patient_gender : VARCHAR(10)
+        patient_weight : DECIMAL(5,2)
+        patient_age : INTEGER
+        calculation_result : TEXT
+    }
+    
+    entity "prescription_medications" {
+        * id : INTEGER <<PK>>
+        --
+        * prescription_id : INTEGER <<FK>>
+        * medication_id : INTEGER <<FK>>
+        order_number : INTEGER
+        is_main : BOOLEAN
+        dosage_instruction : TEXT
+    }
+    
+    entity "users" {
+        * id : INTEGER <<PK>>
+        --
+        login : VARCHAR(25) <<UNIQUE>>
+        password : VARCHAR(100)
+        is_moderator : BOOLEAN
+    }
+}
+
+package "Auth & Singleton" AUTH_COLOR {
+    class UserService {
+        - creatorID uint = 1
+        + GetCreatorID() uint
+        + SetCreatorID(id uint)
+    }
+}
+
+package "Storage" {
+    class MinioClient {
+        + UploadImage(file, bucket, objectName) : error
+        + DeleteImage(bucket, objectName) : error
+        + GetImageURL(objectName) : string
+    }
+}
+
+' Связи: методы используют модели (вариант 1)
+Handler --> Repository : uses
+Repository --> Medication : works with
+Repository --> Prescription : works with
+Repository --> PrescriptionMedication : works with
+Repository --> User : works with
+Handler --> MinioClient : uses
+
+' Связи: модели используют другие модели (вариант 2)
+Prescription "1" --> "0..1" User : creator_id (FK)
+Prescription "1" --> "0..1" User : moderator_id (FK)
+PrescriptionMedication "N" --> "1" Prescription : prescription_id (FK)
+PrescriptionMedication "N" --> "1" Medication : medication_id (FK)
+
+' Связи: модели используют несколько таблиц (вариант 3)
+Medication ..> "medications" : maps to
+Prescription ..> "prescriptions" : maps to
+PrescriptionMedication ..> "prescription_medications" : maps to
+User ..> "users" : maps to
+
+' Связи: использование singleton
+Handler --> UserService : uses (singleton)
+Repository --> UserService : uses (singleton)
+
+' Связи: таблицы БД (foreign keys)
+"prescriptions" }|--|| "users" : creator_id
+"prescriptions" }o--o| "users" : moderator_id
+"prescription_medications" }|--|| "prescriptions" : prescription_id
+"prescription_medications" }|--|| "medications" : medication_id
+
+note right of Handler
+  Все методы API с префиксом /api
+  REST принципы: GET, POST, PUT, DELETE
+  Фильтрация на бэкенде
+  Системные поля не принимаются
+end note
+
+note right of Repository
+  ORM (GORM) для работы с БД
+  Все запросы через ORM
+  Расчет формулы при завершении
+end note
+
+note right of UserService
+  Singleton паттерн
+  Фиксированный создатель ID=1
+  Используется во всех методах
+  где нужен создатель
+end note
+
+note right of PrescriptionMedication
+  Связь многие-ко-многим
+  между Prescription и Medication
+  Дополнительные поля:
+  - OrderNumber
+  - IsMain
+  - DosageInstruction
+end note
+
+@enduml
+

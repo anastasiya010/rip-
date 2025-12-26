@@ -1,0 +1,90 @@
+{{ define "admin-orders-content" }}
+<section class="admin-orders">
+    <h2 class="section-title">Отследить заказы</h2>
+    
+    {{ if .Prescriptions }}
+    <div class="orders-list">
+        {{ range .Prescriptions }}
+        <article class="order-card">
+            <div class="order-header">
+                <h3>Заявка #{{ .ID }}</h3>
+            </div>
+            <div class="order-info" style="margin-bottom: 15px;">
+                <div class="info-row" style="font-weight: bold; margin-bottom: 10px;">
+                    <span>Пользователь: {{ .CreatorLogin }}</span>
+                </div>
+                <div class="info-row" style="font-weight: bold;">
+                    <span>Ребенок: {{ .PatientName }}, {{ .PatientGender }}, {{ .PatientWeight }} кг, {{ .PatientAge }} лет</span>
+                </div>
+            </div>
+            <div class="medications-list" style="margin-bottom: 15px;">
+                <h4 style="margin-bottom: 10px;">Препараты:</h4>
+                <ul style="list-style: none; padding: 0;">
+                    {{ range .Medications }}
+                    <li style="padding: 5px 0; border-bottom: 1px solid #eee;">
+                        {{ .Name }}
+                    </li>
+                    {{ end }}
+                </ul>
+            </div>
+            <div class="order-status" style="margin-top: 15px; margin-bottom: 15px;">
+                <label for="status-select-{{ .ID }}" style="display: block; margin-bottom: 5px; font-weight: bold;">Статус заявки:</label>
+                <select id="status-select-{{ .ID }}" class="status-select" onchange="changeStatus({{ .ID }}, this.value)" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ddd; font-size: 14px;">
+                    <option value="черновик" {{ if eq .Status "черновик" }}selected{{ end }}>Черновик</option>
+                    <option value="сформирован" {{ if eq .Status "сформирован" }}selected{{ end }}>Сформирован</option>
+                    <option value="завершён" {{ if eq .Status "завершён" }}selected{{ end }}>Завершён</option>
+                    <option value="отклонён" {{ if eq .Status "отклонён" }}selected{{ end }}>Отклонён</option>
+                    <option value="удалён" {{ if eq .Status "удалён" }}selected{{ end }}>Удалён</option>
+                </select>
+            </div>
+        </article>
+        {{ end }}
+    </div>
+    {{ else }}
+    <div class="empty-state">
+        <p>Заказов пока нет.</p>
+    </div>
+    {{ end }}
+</section>
+
+<script>
+async function changeStatus(prescriptionId, newStatus) {
+    if (!prescriptionId || !newStatus) {
+        return;
+    }
+    
+    // Блокируем select во время запроса
+    const selectElement = document.getElementById(`status-select-${prescriptionId}`);
+    if (selectElement) {
+        selectElement.disabled = true;
+        selectElement.style.opacity = '0.6';
+    }
+    
+    try {
+        // Отправляем запрос на изменение статуса в БД
+        const response = await fetch(`/api/prescriptions/${prescriptionId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ status: newStatus })
+        });
+        
+        // Обновляем страницу для отображения актуальных данных из БД
+        // Это гарантирует, что изменения видны и у администратора, и у пользователя
+        window.location.reload();
+    } catch (error) {
+        // В случае ошибки тоже обновляем страницу - данные из БД будут актуальными
+        window.location.reload();
+    }
+}
+
+// Автообновление страницы каждые 10 секунд для отображения актуальных данных из БД
+// (чтобы видеть изменения, сделанные другими администраторами или пользователями)
+let autoRefreshInterval = setInterval(function() {
+    window.location.reload();
+}, 10000);
+</script>
+{{ end }}
+

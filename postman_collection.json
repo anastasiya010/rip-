@@ -1,0 +1,424 @@
+{
+	"info": {
+		"_postman_id": "lab3-api-collection",
+		"name": "ЛР3 - API для расчета лекарственных препаратов",
+		"description": "Коллекция запросов для тестирования REST API веб-сервиса",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Домен услуги (Medication)",
+			"item": [
+				{
+					"name": "GET список услуг с фильтрацией",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/medications?category=Жаропонижающее&manufacturer=Reckitt",
+							"host": ["{{base_url}}"],
+							"path": ["api", "medications"],
+							"query": [
+								{"key": "category", "value": "Жаропонижающее"},
+								{"key": "manufacturer", "value": "Reckitt"}
+							]
+						}
+					}
+				},
+				{
+					"name": "GET одна запись услуги",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/medications/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "medications", "1"]
+						}
+					}
+				},
+				{
+					"name": "POST добавление услуги (без изображения)",
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Новое лекарство\",\n  \"description\": \"Описание нового лекарства\",\n  \"category\": \"Категория\",\n  \"manufacturer\": \"Производитель\",\n  \"short_info\": \"Краткая информация\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/medications",
+							"host": ["{{base_url}}"],
+							"path": ["api", "medications"]
+						}
+					}
+				},
+				{
+					"name": "PUT изменение услуги",
+					"request": {
+						"method": "PUT",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Обновленное название\",\n  \"description\": \"Обновленное описание\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/medications/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "medications", "1"]
+						}
+					}
+				},
+				{
+					"name": "DELETE удаление услуги",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/medications/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "medications", "1"]
+						}
+					}
+				},
+				{
+					"name": "POST добавление в заявку-черновик",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/medications/1/add-to-draft",
+							"host": ["{{base_url}}"],
+							"path": ["api", "medications", "1", "add-to-draft"]
+						}
+					}
+				},
+				{
+					"name": "POST добавление изображения",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [{"key": "image", "type": "file", "src": []}]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/medications/1/image",
+							"host": ["{{base_url}}"],
+							"path": ["api", "medications", "1", "image"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Домен заявки (Prescription)",
+			"item": [
+				{
+					"name": "GET иконки корзины",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/prescriptions/cart-icon",
+							"host": ["{{base_url}}"],
+							"path": ["api", "prescriptions", "cart-icon"]
+						}
+					}
+				},
+				{
+					"name": "GET список заявок с фильтрацией",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/prescriptions?status=сформирован&date_from=2024-09-01&date_to=2024-09-30",
+							"host": ["{{base_url}}"],
+							"path": ["api", "prescriptions"],
+							"query": [
+								{"key": "status", "value": "сформирован"},
+								{"key": "date_from", "value": "2024-09-01"},
+								{"key": "date_to", "value": "2024-09-30"}
+							]
+						}
+					}
+				},
+				{
+					"name": "GET одна запись заявки",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/prescriptions/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "prescriptions", "1"]
+						}
+					}
+				},
+				{
+					"name": "PUT изменения полей заявки",
+					"request": {
+						"method": "PUT",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"patient_name\": \"Новое имя\",\n  \"patient_age\": 10,\n  \"patient_weight\": 35.5\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/prescriptions/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "prescriptions", "1"]
+						}
+					}
+				},
+				{
+					"name": "PUT сформировать создателем",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/prescriptions/1/form",
+							"host": ["{{base_url}}"],
+							"path": ["api", "prescriptions", "1", "form"]
+						}
+					}
+				},
+				{
+					"name": "PUT завершить модератором",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/prescriptions/1/complete",
+							"host": ["{{base_url}}"],
+							"path": ["api", "prescriptions", "1", "complete"]
+						}
+					}
+				},
+				{
+					"name": "PUT отклонить модератором",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/prescriptions/1/reject",
+							"host": ["{{base_url}}"],
+							"path": ["api", "prescriptions", "1", "reject"]
+						}
+					}
+				},
+				{
+					"name": "DELETE удаление заявки",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/prescriptions/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "prescriptions", "1"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Домен м-м (PrescriptionMedication)",
+			"item": [
+				{
+					"name": "DELETE удаление из заявки",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/prescriptions/1/medications/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "prescriptions", "1", "medications", "1"]
+						}
+					}
+				},
+				{
+					"name": "PUT изменение количества/порядка/значения",
+					"request": {
+						"method": "PUT",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"quantity\": 2,\n  \"order_number\": 1,\n  \"dosage_instruction\": \"По 1 таблетке 3 раза в день\",\n  \"is_main\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/prescriptions/1/medications/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "prescriptions", "1", "medications", "1"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Домен пользователь (User)",
+			"item": [
+				{
+					"name": "POST регистрация",
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"login\": \"newuser\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "register"]
+						}
+					}
+				},
+				{
+					"name": "GET полей пользователя",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/users/profile",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "profile"]
+						}
+					}
+				},
+				{
+					"name": "PUT пользователя (личный кабинет)",
+					"request": {
+						"method": "PUT",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"login\": \"updated_login\",\n  \"password\": \"newpassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/profile",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "profile"]
+						}
+					}
+				},
+				{
+					"name": "POST аутентификация",
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"login\": \"user\",\n  \"password\": \"user\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/users/auth",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "auth"]
+						}
+					}
+				},
+				{
+					"name": "POST деавторизация",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/users/logout",
+							"host": ["{{base_url}}"],
+							"path": ["api", "users", "logout"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Тестирование краевых случаев",
+			"item": [
+				{
+					"name": "GET услуги с невалидным ID (отрицательный)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/medications/-1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "medications", "-1"]
+						}
+					}
+				},
+				{
+					"name": "GET услуги с невалидным ID (очень большое число)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/medications/999999999999",
+							"host": ["{{base_url}}"],
+							"path": ["api", "medications", "999999999999"]
+						}
+					}
+				},
+				{
+					"name": "POST создание услуги без обязательных полей",
+					"request": {
+						"method": "POST",
+						"header": [{"key": "Content-Type", "value": "application/json"}],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"description\": \"Только описание без названия\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/medications",
+							"host": ["{{base_url}}"],
+							"path": ["api", "medications"]
+						}
+					}
+				},
+				{
+					"name": "PUT формирование заявки без обязательных полей",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/prescriptions/1/form",
+							"host": ["{{base_url}}"],
+							"path": ["api", "prescriptions", "1", "form"]
+						}
+					}
+				},
+				{
+					"name": "GET услуги с невалидным ID (строка)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/medications/abc",
+							"host": ["{{base_url}}"],
+							"path": ["api", "medications", "abc"]
+						}
+					}
+				},
+				{
+					"name": "GET заявки с невалидным ID (строка)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/prescriptions/abc",
+							"host": ["{{base_url}}"],
+							"path": ["api", "prescriptions", "abc"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		}
+	]
+}
+

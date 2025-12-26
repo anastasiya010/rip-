@@ -1,0 +1,85 @@
+{{ define "orders-content" }}
+<section class="orders-history">
+    <h2 class="section-title">Мои заказы</h2>
+    
+    {{ if .Prescriptions }}
+    <div class="orders-list">
+        {{ range .Prescriptions }}
+        <article class="order-card">
+            <div class="order-header">
+                <h3>Заявка #{{ .ID }}</h3>
+            </div>
+            <div class="order-info" style="margin-bottom: 15px;">
+                <div class="info-row" style="font-weight: bold;">
+                    <span>Ребенок: {{ .PatientName }}, {{ .PatientGender }}, {{ .PatientWeight }} кг, {{ .PatientAge }} лет</span>
+                </div>
+            </div>
+            <div class="medications-list" style="margin-bottom: 15px;">
+                <h4 style="margin-bottom: 10px;">Препараты:</h4>
+                <ul style="list-style: none; padding: 0;">
+                    {{ range .Medications }}
+                    <li style="padding: 5px 0; border-bottom: 1px solid #eee;">
+                        {{ .Name }}
+                    </li>
+                    {{ end }}
+                </ul>
+            </div>
+            <div class="order-status" style="margin-top: 15px;">
+                <span class="status-badge status-{{ .Status }}" style="font-size: 16px; padding: 8px 15px;">{{ .Status }}</span>
+            </div>
+            {{ if and (eq .Status "завершён") .CalculationResult }}
+            <div class="calculation-result" style="margin-top: 15px; padding: 15px; background-color: #e8f5e9; border-radius: 5px;">
+                <h4>Результат расчета:</h4>
+                <pre style="white-space: pre-wrap;">{{ .CalculationResult }}</pre>
+            </div>
+            {{ end }}
+        </article>
+        {{ end }}
+    </div>
+    {{ else }}
+    <div class="empty-state">
+        <p>У вас пока нет заказов.</p>
+    </div>
+    {{ end }}
+</section>
+
+<script>
+async function completeOrder(id) {
+    const response = await fetch(`/api/prescriptions/${id}/complete`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    });
+    
+    if (response.ok) {
+        window.location.reload();
+    } else {
+        const data = await response.json();
+        alert('Ошибка: ' + (data.message || 'Не удалось завершить заказ'));
+    }
+}
+
+async function rejectOrder(id) {
+    const response = await fetch(`/api/prescriptions/${id}/reject`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    });
+    
+    if (response.ok) {
+        window.location.reload();
+    } else {
+        const data = await response.json();
+        alert('Ошибка: ' + (data.message || 'Не удалось отклонить заказ'));
+    }
+}
+
+// Автообновление страницы каждые 5 секунд для отображения актуальных данных из БД
+setInterval(function() {
+    window.location.reload();
+}, 5000);
+</script>
+{{ end }}
+

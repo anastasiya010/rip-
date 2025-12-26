@@ -1,0 +1,519 @@
+openapi: 3.0.0
+info:
+  title: API для расчета лекарственных препаратов для детей
+  description: REST API для работы с лекарствами, заявками и пользователями
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080/api
+    description: Локальный сервер разработки
+
+paths:
+  /medications:
+    get:
+      summary: Получить список услуг с фильтрацией
+      tags:
+        - Услуги (Medication)
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Фильтр по категории
+        - name: manufacturer
+          in: query
+          schema:
+            type: string
+          description: Фильтр по производителю
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Medication'
+    post:
+      summary: Добавить услугу (без изображения)
+      tags:
+        - Услуги (Medication)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MedicationCreate'
+      responses:
+        '201':
+          description: Услуга создана
+        '400':
+          description: Ошибка валидации
+
+  /medications/{id}:
+    get:
+      summary: Получить одну запись услуги
+      tags:
+        - Услуги (Medication)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Успешный ответ
+        '404':
+          description: Услуга не найдена
+    put:
+      summary: Изменить услугу
+      tags:
+        - Услуги (Medication)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MedicationUpdate'
+      responses:
+        '200':
+          description: Успешное обновление
+        '404':
+          description: Услуга не найдена
+    delete:
+      summary: Удалить услугу
+      tags:
+        - Услуги (Medication)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Услуга удалена
+        '404':
+          description: Услуга не найдена
+
+  /medications/{id}/add-to-draft:
+    post:
+      summary: Добавить услугу в заявку-черновик
+      tags:
+        - Услуги (Medication)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Услуга добавлена в черновик
+
+  /medications/{id}/image:
+    post:
+      summary: Добавить изображение услуги
+      tags:
+        - Услуги (Medication)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                image:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Изображение загружено
+
+  /prescriptions/cart-icon:
+    get:
+      summary: Получить иконку корзины
+      tags:
+        - Заявки (Prescription)
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: object
+                    properties:
+                      prescription_id:
+                        type: integer
+                        nullable: true
+                      count:
+                        type: integer
+
+  /prescriptions:
+    get:
+      summary: Получить список заявок с фильтрацией
+      tags:
+        - Заявки (Prescription)
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+          description: Фильтр по статусу
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Начало диапазона даты формирования
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+          description: Конец диапазона даты формирования
+      responses:
+        '200':
+          description: Успешный ответ
+
+  /prescriptions/{id}:
+    get:
+      summary: Получить одну запись заявки
+      tags:
+        - Заявки (Prescription)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Успешный ответ
+        '404':
+          description: Заявка не найдена
+    put:
+      summary: Изменить поля заявки
+      tags:
+        - Заявки (Prescription)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrescriptionUpdate'
+      responses:
+        '200':
+          description: Успешное обновление
+    delete:
+      summary: Удалить заявку
+      tags:
+        - Заявки (Prescription)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Заявка удалена
+
+  /prescriptions/{id}/form:
+    put:
+      summary: Сформировать заявку создателем
+      tags:
+        - Заявки (Prescription)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Заявка сформирована
+        '400':
+          description: Ошибка валидации обязательных полей
+
+  /prescriptions/{id}/complete:
+    put:
+      summary: Завершить заявку модератором
+      tags:
+        - Заявки (Prescription)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Заявка завершена
+
+  /prescriptions/{id}/reject:
+    put:
+      summary: Отклонить заявку модератором
+      tags:
+        - Заявки (Prescription)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Заявка отклонена
+
+  /prescriptions/{prescription_id}/medications/{medication_id}:
+    delete:
+      summary: Удалить услугу из заявки
+      tags:
+        - М-М (PrescriptionMedication)
+      parameters:
+        - name: prescription_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: medication_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Услуга удалена из заявки
+    put:
+      summary: Изменить количество/порядок/значение в м-м
+      tags:
+        - М-М (PrescriptionMedication)
+      parameters:
+        - name: prescription_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: medication_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrescriptionMedicationUpdate'
+      responses:
+        '200':
+          description: Успешное обновление
+
+  /users/register:
+    post:
+      summary: Регистрация пользователя
+      tags:
+        - Пользователь (User)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegister'
+      responses:
+        '201':
+          description: Пользователь зарегистрирован
+        '409':
+          description: Пользователь уже существует
+
+  /users/profile:
+    get:
+      summary: Получить поля пользователя
+      tags:
+        - Пользователь (User)
+      responses:
+        '200':
+          description: Успешный ответ
+    put:
+      summary: Обновить пользователя (личный кабинет)
+      tags:
+        - Пользователь (User)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: Успешное обновление
+
+  /users/auth:
+    post:
+      summary: Аутентификация пользователя
+      tags:
+        - Пользователь (User)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserAuth'
+      responses:
+        '200':
+          description: Успешная аутентификация
+        '401':
+          description: Неверные учетные данные
+
+  /users/logout:
+    post:
+      summary: Деавторизация пользователя
+      tags:
+        - Пользователь (User)
+      responses:
+        '200':
+          description: Успешная деавторизация
+
+components:
+  schemas:
+    Medication:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        manufacturer:
+          type: string
+        short_info:
+          type: string
+        image_url:
+          type: string
+
+    MedicationCreate:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        manufacturer:
+          type: string
+        short_info:
+          type: string
+
+    MedicationUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        manufacturer:
+          type: string
+        short_info:
+          type: string
+
+    PrescriptionUpdate:
+      type: object
+      properties:
+        patient_name:
+          type: string
+        patient_gender:
+          type: string
+        patient_weight:
+          type: number
+        patient_age:
+          type: integer
+
+    PrescriptionMedicationUpdate:
+      type: object
+      properties:
+        quantity:
+          type: integer
+        order_number:
+          type: integer
+        dosage_instruction:
+          type: string
+        is_main:
+          type: boolean
+
+    UserRegister:
+      type: object
+      required:
+        - login
+        - password
+      properties:
+        login:
+          type: string
+        password:
+          type: string
+
+    UserUpdate:
+      type: object
+      properties:
+        login:
+          type: string
+        password:
+          type: string
+
+    UserAuth:
+      type: object
+      required:
+        - login
+        - password
+      properties:
+        login:
+          type: string
+        password:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: fail
+        message:
+          type: string
+

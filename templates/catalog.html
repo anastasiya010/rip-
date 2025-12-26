@@ -1,0 +1,69 @@
+{{ define "catalog-content" }}
+<section class="toolbar">
+    <form method="get" action="/catalog" class="filter-form">
+        <label class="filter-label">Поиск</label>
+        <input type="text" name="search" placeholder="Название лекарства" value="{{ .Search }}" class="filter-select">
+        <label class="filter-label">Выберите категорию лекарства</label>
+        <select name="cat" class="filter-select">
+            <option value="">Все категории</option>
+            {{ range .Categories }}
+            <option value="{{ . }}" {{ if eq $.SelectedCategory . }}selected{{ end }}>{{ . }}</option>
+            {{ end }}
+        </select>
+        <label class="filter-label">Производитель</label>
+        <select name="man" class="filter-select">
+            <option value="">Все производители</option>
+            {{ range .Manufacturers }}
+            <option value="{{ . }}" {{ if eq $.SelectedManufacturer . }}selected{{ end }}>{{ . }}</option>
+            {{ end }}
+        </select>
+        <button type="submit" class="btn">Показать</button>
+    </form>
+    {{ if and .IsAuthenticated (ne .UserRole "admin") }}
+        {{ if ne .cart_count 0 }}
+        <a class="basket" href="/order" title="Заявка">
+            🧺 <span>В заявке: {{ .cart_count }}</span>
+        </a>
+        {{ else }}
+        <div class="basket" style="opacity: 0.5; cursor: not-allowed;" title="Заявка пуста">
+            🧺 <span>В заявке: 0</span>
+        </div>
+        {{ end }}
+    {{ else if not .IsAuthenticated }}
+        <div class="basket" style="opacity: 0.3; cursor: not-allowed;" title="Войдите, чтобы использовать корзину">
+            🧺 <span>Корзина недоступна</span>
+        </div>
+    {{ end }}
+    <div class="manufacturers-hint"></div>
+    <div class="manufacturers-bar"></div>
+</section>
+
+<section class="card-grid">
+    {{ range .MedicationCards }}
+    <article class="card">
+        <a href="/service/{{ .ID }}" class="card-link">
+            <img src="{{ call $.ImageURL .ImageURL }}" alt="{{ .Name }}" class="card-img"/>
+            <div class="card-body">
+                <h3 class="card-title">{{ .Name }}</h3>
+                <div class="card-meta">Категория: {{ .Category }}</div>
+                <div class="card-meta">Производитель: {{ .Manufacturer }}</div>
+                <p class="card-text">{{ .ShortInfo }}</p>
+            </div>
+            <div class="card-actions"><span class="btn">Подробнее</span></div>
+        </a>
+        {{ if and $.IsAuthenticated (ne $.UserRole "admin") }}
+        <form action="/add-medication" method="POST" style="padding: 10px;">
+            <input type="hidden" name="medication_id" value="{{ .ID }}">
+            <button type="submit" class="btn" style="width: 100%;">Добавить в заявку</button>
+        </form>
+        {{ else if not $.IsAuthenticated }}
+        <div style="padding: 10px;">
+            <a href="/login" class="btn" style="width: 100%; display: block; text-align: center; text-decoration: none;">Войдите, чтобы добавить</a>
+        </div>
+        {{ end }}
+    </article>
+    {{ end }}
+</section>
+{{ end }}
+
+

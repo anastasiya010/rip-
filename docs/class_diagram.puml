@@ -1,0 +1,326 @@
+@startuml
+!define API_COLOR #E1F5FF
+!define MODEL_COLOR #FFF4E1
+!define REPO_COLOR #E8F5E9
+!define STORAGE_COLOR #F3E5F5
+!define AUTH_COLOR #FFE0B2
+
+title Диаграмма классов - Веб-сервис для расчета лекарственных препаратов
+
+package "API Handlers" API_COLOR {
+  class Handler {
+    - Repository repository
+    - MinioClient minio
+    --
+    ' Домен услуги (Medication)
+    + GetMedicationsAPI(ctx) : JSON
+    + GetMedicationByIDAPI(ctx) : JSON
+    + CreateMedicationAPI(ctx) : JSON
+    + UpdateMedicationAPI(ctx) : JSON
+    + DeleteMedicationAPI(ctx) : JSON
+    + AddMedicationToDraftAPI(ctx) : JSON
+    + UploadMedicationImageAPI(ctx) : JSON
+    --
+    ' Домен заявки (Prescription)
+    + GetCartIconAPI(ctx) : JSON
+    + GetPrescriptionsAPI(ctx) : JSON
+    + GetPrescriptionByIDAPI(ctx) : JSON
+    + UpdatePrescriptionAPI(ctx) : JSON
+    + FormPrescriptionAPI(ctx) : JSON
+    + CompleteOrRejectPrescriptionAPI(ctx) : JSON
+    + DeletePrescriptionAPI(ctx) : JSON
+    --
+    ' Домен м-м (PrescriptionMedication)
+    + DeletePrescriptionMedicationAPI(ctx) : JSON
+    + UpdatePrescriptionMedicationAPI(ctx) : JSON
+    --
+    ' Домен пользователь (User)
+    + RegisterUserAPI(ctx) : JSON
+    + GetUserProfileAPI(ctx) : JSON
+    + UpdateUserProfileAPI(ctx) : JSON
+    + AuthenticateUserAPI(ctx) : JSON
+    + LogoutUserAPI(ctx) : JSON
+  }
+  
+  note right of Handler
+    Все методы возвращают JSON
+    Используют фиксированного создателя
+    через singleton UserService
+  end note
+}
+
+package "Models (DS)" MODEL_COLOR {
+  class Medication {
+    + ID : uint
+    + Name : string
+    + Description : string
+    + Category : string
+    + Manufacturer : string
+    + ShortInfo : string
+    + ImageURL : *string
+    + AdultDose : float64
+    + IsDeleted : bool
+  }
+  
+  note right of Medication
+    Таблица: medications
+    Используется для расчета
+    детской дозы
+  end note
+
+  class Prescription {
+    + ID : uint
+    + Status : string
+    + DateCreate : time.Time
+    + CreatorID : uint
+    + DateFormation : *time.Time
+    + DateFinish : *time.Time
+    + ModeratorID : *uint
+    + PatientName : string
+    + PatientGender : string
+    + PatientWeight : float64
+    + PatientAge : int
+    + CalculationResult : string
+  }
+  
+  note right of Prescription
+    Таблица: prescriptions
+    Статусы: черновик, сформирован,
+    завершён, отклонён, удалён
+  end note
+
+  class PrescriptionMedication {
+    + PrescriptionID : uint
+    + MedicationID : uint
+    + OrderNumber : int
+    + IsMain : bool
+    + DosageInstruction : string
+  }
+  
+  note right of PrescriptionMedication
+    Таблица: prescription_medications
+    Связь многие-ко-многим
+    между Prescription и Medication
+  end note
+
+  class User {
+    + ID : uint
+    + Login : string
+    + Password : string
+    + IsModerator : bool
+  }
+  
+  note right of User
+    Таблица: users
+    Используется как Creator
+    и Moderator в Prescription
+  end note
+}
+
+package "Repository" REPO_COLOR {
+  class Repository {
+    - db : *gorm.DB
+    --
+    ' Medication методы
+    + GetAllMedications() : []Medication
+    + GetMedicationByID(id) : *Medication
+    + CreateMedication(med) : error
+    + UpdateMedication(med) : error
+    + DeleteMedication(id) : error
+    --
+    ' Prescription методы
+    + GetDraftPrescription(creatorID) : *Prescription
+    + CreateDraftPrescription(creatorID) : *Prescription
+    + GetPrescriptionByID(id) : *Prescription
+    + GetPrescriptionsWithFilters(...) : []Prescription
+    + FormPrescription(id) : error
+    + CompleteOrRejectPrescription(...) : error
+    + DeletePrescription(id) : error
+    + UpdatePrescription(pres) : error
+    + GetCartCount(creatorID) : int64
+    + GetDraftPrescriptionID(creatorID) : *uint
+    --
+    ' PrescriptionMedication методы
+    + AddMedicationToPrescription(...) : error
+    + GetPrescriptionMedications(id) : []PrescriptionMedication
+    + GetPrescriptionMedicationsWithDetails(id) : []PrescriptionMedication
+    + GetPrescriptionMedicationsWithResultCount(id) : int64
+    + DeletePrescriptionMedication(...) : error
+    + UpdatePrescriptionMedication(...) : error
+    --
+    ' User методы
+    + GetUserByID(id) : *User
+    + GetUserByLogin(login) : *User
+    + CreateUser(...) : *User
+    + UpdateUser(user) : error
+    --
+    ' Расчет
+    - calculatePrescriptionResult(...) : string
+  }
+  
+  note right of Repository
+    Использует GORM для работы с БД
+    Реализует бизнес-логику
+    Выполняет расчет формулы
+  end note
+}
+
+package "Storage" STORAGE_COLOR {
+  class MinioClient {
+    - client : *minio.Client
+    - bucketName : string
+    - publicURL : string
+    --
+    + UploadImage(ctx, file, contentType) : string, error
+    + DeleteImage(ctx, objectName) : error
+    + GetImageURL(objectName) : string
+    + GeneratePresignedURL(...) : string, error
+  }
+  
+  note right of MinioClient
+    Работа с объектным хранилищем
+    Генерация имен на латинице (UUID)
+    Удаление старых изображений
+  end note
+}
+
+package "Auth" AUTH_COLOR {
+  class UserService {
+    - creatorID : uint {static = 1}
+    --
+    + {static} GetUserService() : *UserService
+    + GetCreatorID() : uint
+    + SetCreatorID(id) : void
+  }
+  
+  note right of UserService
+    Singleton паттерн
+    Фиксированный создатель
+    ID = 1 (константа)
+  end note
+
+  class SessionManager {
+    - sessions : map[string]Session
+    --
+    + CreateSession(...) : string
+    + GetSession(token) : *Session, bool
+    + DeleteSession(token) : void
+  }
+}
+
+' Связи Handler -> Repository
+Handler --> Repository : uses
+
+' Связи Handler -> Storage
+Handler --> MinioClient : uses
+
+' Связи Handler -> Auth
+Handler --> UserService : uses\nGetCreatorID()
+
+' Связи Repository -> Models
+Repository --> Medication : queries\ncreates\nupdates\ndeletes
+Repository --> Prescription : queries\ncreates\nupdates\ndeletes
+Repository --> PrescriptionMedication : queries\ncreates\nupdates\ndeletes
+Repository --> User : queries\ncreates\nupdates
+
+' Связи между моделями (по коду)
+Prescription "1" --> "1" User : Creator\n(CreatorID)
+Prescription "1" --> "0..1" User : Moderator\n(ModeratorID)
+Prescription "1" --> "*" PrescriptionMedication : has many
+PrescriptionMedication "*" --> "1" Medication : belongs to
+
+' URL маршруты
+package "API Routes" {
+  class MedicationRoutes {
+    GET /api/medications
+    GET /api/medications/:id
+    POST /api/medications
+    PUT /api/medications/:id
+    DELETE /api/medications/:id
+    POST /api/medications/:id/add-to-draft
+    POST /api/medications/:id/image
+  }
+  
+  class PrescriptionRoutes {
+    GET /api/prescriptions/cart-icon
+    GET /api/prescriptions
+    GET /api/prescriptions/:id
+    PUT /api/prescriptions/:id
+    PUT /api/prescriptions/:id/form
+    PUT /api/prescriptions/:id/complete
+    PUT /api/prescriptions/:id/reject
+    DELETE /api/prescriptions/:id
+    DELETE /api/prescriptions/:id/medications/:medication_id
+    PUT /api/prescriptions/:id/medications/:medication_id
+  }
+  
+  class UserRoutes {
+    POST /api/users/register
+    GET /api/users/profile
+    PUT /api/users/profile
+    POST /api/users/auth
+    POST /api/users/logout
+  }
+}
+
+Handler --> MedicationRoutes
+Handler --> PrescriptionRoutes
+Handler --> UserRoutes
+
+' Таблицы БД
+package "Database Tables" {
+  entity "medications" {
+    * id : SERIAL
+    * name : VARCHAR(100)
+    description : TEXT
+    category : VARCHAR(50)
+    manufacturer : VARCHAR(100)
+    short_info : VARCHAR(200)
+    image_url : VARCHAR(255)
+    adult_dose : DECIMAL(10,2)
+    is_deleted : BOOLEAN
+  }
+  
+  entity "prescriptions" {
+    * id : SERIAL
+    * status : VARCHAR(20)
+    * date_create : TIMESTAMP
+    * creator_id : INTEGER
+    date_formation : TIMESTAMP
+    date_finish : TIMESTAMP
+    moderator_id : INTEGER
+    patient_name : VARCHAR(100)
+    patient_gender : VARCHAR(10)
+    patient_weight : DECIMAL(5,2)
+    patient_age : INTEGER
+    calculation_result : TEXT
+  }
+  
+  entity "prescription_medications" {
+    * prescription_id : INTEGER
+    * medication_id : INTEGER
+    order_number : INTEGER
+    is_main : BOOLEAN
+    dosage_instruction : TEXT
+  }
+  
+  entity "users" {
+    * id : SERIAL
+    * login : VARCHAR(100)
+    * password : VARCHAR(255)
+    is_moderator : BOOLEAN
+  }
+}
+
+Medication ..> "medications" : maps to
+Prescription ..> "prescriptions" : maps to
+PrescriptionMedication ..> "prescription_medications" : maps to
+User ..> "users" : maps to
+
+"prescriptions" ||--o{ "prescription_medications" : "1 to many"
+"medications" ||--o{ "prescription_medications" : "1 to many"
+"users" ||--o{ "prescriptions" : "creator (1 to many)"
+"users" ||--o{ "prescriptions" : "moderator (1 to many)"
+
+@enduml
+

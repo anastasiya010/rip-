@@ -1,0 +1,63 @@
+{{ define "layout" }}
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Расчет дозы для ребенка</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="icon" href="/static/img/favicon.png">
+</head>
+<body>
+    <header class="app-header">
+        <div class="container header-content" style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <a class="home-link" href="/catalog" aria-label="Домой">🏠</a>
+                <h1 class="app-title" style="margin: 0;">Аптечный справочник — расчет дозы</h1>
+            </div>
+            <div class="user-info" style="display: flex; align-items: center; gap: 10px;">
+                {{ if .IsAuthenticated }}
+                    <span class="user-name">{{ .UserLogin }}</span>
+                    {{ if eq .UserRole "admin" }}
+                        <span class="user-badge">Администратор</span>
+                        <a href="/admin-orders" class="btn-orders">Отследить заказы</a>
+                    {{ else }}
+                        <a href="/orders" class="btn-orders">Мои заказы</a>
+                    {{ end }}
+                    <form action="/logout" method="POST" style="display: inline; margin: 0;">
+                        <button type="submit" class="btn-logout">Выйти</button>
+                    </form>
+                {{ else }}
+                    <a href="/login" class="btn-login">Войти</a>
+                    <a href="/login?register=1" class="btn-login">Зарегистрироваться</a>
+                {{ end }}
+            </div>
+        </div>
+    </header>
+    <main class="container">
+        {{ if .TemplateName }}
+            {{ if eq .TemplateName "catalog" }}
+                {{ template "catalog-content" . }}
+            {{ else if eq .TemplateName "service" }}
+                {{ template "service-content" . }}
+            {{ else if eq .TemplateName "order" }}
+                {{ template "order-content" . }}
+            {{ else if eq .TemplateName "login" }}
+                {{ template "login-content" . }}
+            {{ else if eq .TemplateName "orders" }}
+                {{ template "orders-content" . }}
+            {{ else if eq .TemplateName "admin-orders" }}
+                {{ template "admin-orders-content" . }}
+            {{ else }}
+                <p>Ошибка: неизвестный TemplateName: {{ .TemplateName }}</p>
+            {{ end }}
+        {{ else }}
+            <p>Ошибка: TemplateName не указан. Доступные данные: {{ . }}</p>
+        {{ end }}
+    </main>
+    
+</body>
+</html>
+{{ end }}
+
+
